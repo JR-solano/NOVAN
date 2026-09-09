@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NOVAN · Iniciar sesión</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+
+  <div class="pantalla">
+
+    <!-- Panel izquierdo: identidad -->
+    <aside class="panel-marca">
+      <div class="panel-marca__contenido">
+        <span class="marca">NOVAN</span>
+        <p class="marca__desc">Nuevo Organizador Virtual de Asistencias y Notas</p>
+
+        <ul class="marca__lista">
+          <li>Registra asistencia por clase</li>
+          <li>Organiza evaluaciones con pesos personalizados</li>
+          <li>Consulta el progreso de cada periodo</li>
+        </ul>
+      </div>
+
+      <svg class="panel-marca__grafico" viewBox="0 0 220 160" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="10" y="20" width="140" height="18" rx="2" fill="#F7F3ED" opacity="0.14"/>
+        <rect x="10" y="50" width="90" height="18" rx="2" fill="#F7F3ED" opacity="0.22"/>
+        <rect x="10" y="80" width="120" height="18" rx="2" fill="#F7F3ED" opacity="0.14"/>
+        <circle cx="185" cy="59" r="30" stroke="#E8621F" stroke-width="3"/>
+        <path d="M172 59 L182 69 L200 46" stroke="#E8621F" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </aside>
+
+    <!-- Panel derecho: formulario -->
+    <main class="panel-form">
+      <form class="form-login" method="POST" action="/login">
+        {% if error %}
+  <p class="form-login__error">{{ error }}</p>
+{% endif %}
+        <h1 class="form-login__titulo">Bienvenido de nuevo</h1>
+        <p class="form-login__subtitulo">Ingresa con tu cuenta de profesor para continuar.</p>
+
+        <label class="campo" for="correo">
+          <span class="campo__etiqueta">Correo</span>
+          <input class="campo__input" type="email" id="correo" name="correo" placeholder="nombre@colegio.edu" required>
+        </label>
+
+        <label class="campo" for="clave">
+          <span class="campo__etiqueta">Contraseña</span>
+          <input class="campo__input" type="password" id="clave" name="clave" placeholder="••••••••" required>
+        </label>
+
+        <button class="boton-primario" type="submit">Ingresar</button>
+
+        <p class="form-login__ayuda">¿Olvidaste tu contraseña? Contacta al administrador del colegio.</p>
+      </form>
+    </main>
+
+  </div>
+
+</body>
+</html>
