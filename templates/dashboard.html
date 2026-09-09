@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NOVAN · Panel del profesor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="cuerpo-dashboard">
+
+  <header class="barra-superior">
+    <span class="marca marca--pequena">NOVAN</span>
+    <div class="barra-superior__derecha">
+      <span class="barra-superior__nombre">Hola, {{ nombre }}</span>
+      <a href="{{ url_for('logout') }}" class="boton-secundario">Cerrar sesión</a>
+    </div>
+  </header>
+
+  <main class="contenido-dashboard">
+    <div class="contenido-dashboard__encabezado">
+      <h1>Tus clases</h1>
+      <a href="{{ url_for('nueva_plantilla') }}" class="boton-primario boton-primario--chico">+ Nueva clase</a>
+    </div>
+
+    {% if plantillas|length == 0 %}
+      <p class="mensaje-vacio">Todavía no tienes clases creadas. Crea la primera para empezar a registrar estudiantes, notas y asistencia.</p>
+    {% else %}
+      <div class="grid-plantillas">
+        {% for plantilla in plantillas %}
+          <a href="#" class="tarjeta-plantilla">
+            <h2>{{ plantilla["nombre_salon"] }}</h2>
+            <p>{{ plantilla["materia"] }}</p>
+          </a>
+        {% endfor %}
+      </div>
+    {% endif %}
+  </main>
+
+</body>
+</html>

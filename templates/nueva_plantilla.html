@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NOVAN · Nueva clase</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="cuerpo-dashboard">
+
+  <header class="barra-superior">
+    <span class="marca marca--pequena">NOVAN</span>
+    <div class="barra-superior__derecha">
+      <a href="{{ url_for('dashboard') }}" class="boton-secundario">Volver al panel</a>
+    </div>
+  </header>
+
+  <main class="contenido-dashboard">
+    <h1>Nueva clase</h1>
+
+    <form class="form-plantilla" method="POST" action="{{ url_for('nueva_plantilla') }}">
+      <label class="campo" for="nombre_salon">
+        <span class="campo__etiqueta">Nombre del salón</span>
+        <input class="campo__input" type="text" id="nombre_salon" name="nombre_salon" placeholder="Ej. 5°A" required>
+      </label>
+
+      <label class="campo" for="materia">
+        <span class="campo__etiqueta">Materia</span>
+        <input class="campo__input" type="text" id="materia" name="materia" placeholder="Ej. Matemáticas" required>
+      </label>
+
+      <button class="boton-primario" type="submit">Crear clase</button>
+    </form>
+  </main>
+
+</body>
+</html>
