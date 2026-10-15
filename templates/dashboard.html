@@ -29,7 +29,7 @@
     {% else %}
       <div class="grid-plantillas">
         {% for plantilla in plantillas %}
-          <a href="#" class="tarjeta-plantilla">
+         <a href="{{ url_for('ver_plantilla', plantilla_id=plantilla['id']) }}" class="tarjeta-plantilla">
             <h2>{{ plantilla["nombre_salon"] }}</h2>
             <p>{{ plantilla["materia"] }}</p>
           </a>

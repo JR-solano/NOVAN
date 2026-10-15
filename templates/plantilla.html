@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NOVAN · {{ plantilla["nombre_salon"] }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    .form-eliminar { display: inline; margin: 0; }
+    .boton-eliminar {
+      background: #fff;
+      color: #b3261e;
+      border: 1px solid #b3261e;
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 0.8rem;
+      font-family: inherit;
+      cursor: pointer;
+      margin-left: 8px;
+    }
+    .boton-eliminar:hover { background: #b3261e; color: #fff; }
+    .input-porcentaje {
+      width: 60px;
+      padding: 2px 4px;
+      font-size: 0.8rem;
+      font-family: inherit;
+      margin-left: 8px;
+    }
+    .boton-editar {
+      background: #fff;
+      color: #1f6f6b;
+      border: 1px solid #1f6f6b;
+      border-radius: 6px;
+      padding: 2px 8px;
+      font-size: 0.8rem;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .boton-editar:hover { background: #1f6f6b; color: #fff; }
+  </style>
+</head>
+<body class="cuerpo-dashboard">
+
+  <header class="barra-superior">
+    <span class="marca marca--pequena">NOVAN</span>
+    <div class="barra-superior__derecha">
+      <a href="{{ url_for('dashboard') }}" class="boton-secundario">Volver al panel</a>
+    </div>
+  </header>
+
+  <main class="contenido-dashboard">
+    <h1>{{ plantilla["nombre_salon"] }}</h1>
+    <p>{{ plantilla["materia"] }}</p>
+
+    <h2>Agregar estudiante</h2>
+    <form class="form-plantilla" method="POST">
+      <label class="campo" for="nombre">
+        <span class="campo__etiqueta">Nombre del estudiante</span>
+        <input class="campo__input" type="text" id="nombre" name="nombre" placeholder="Ej. Juan Pérez" required>
+      </label>
+      <button class="boton-primario" type="submit">Agregar estudiante</button>
+    </form>
+
+    <h2>Crear periodo</h2>
+    <form class="form-plantilla" method="POST" action="{{ url_for('nuevo_periodo', plantilla_id=plantilla['id']) }}">
+      <label class="campo" for="nombre_periodo">
+        <span class="campo__etiqueta">Nombre</span>
+        <input class="campo__input" type="text" id="nombre_periodo" name="nombre" placeholder="Ej. Periodo 1" required>
+      </label>
+      <label class="campo" for="numero_clases">
+        <span class="campo__etiqueta">Número de clases</span>
+        <input class="campo__input" type="number" min="1" id="numero_clases" name="numero_clases" placeholder="Ej. 16" required>
+      </label>
+      <label class="campo" for="porcentaje_periodo">
+        <span class="campo__etiqueta">Porcentaje del periodo en la materia</span>
+        <input class="campo__input" type="number" step="0.1" min="0" max="100" id="porcentaje_periodo" name="porcentaje" placeholder="Ej. 20" required>
+      </label>
+      <button class="boton-primario" type="submit">Crear periodo</button>
+    </form>
+
+    <h2>Periodos</h2>
+    {% if periodos|length == 0 %}
+      <p class="mensaje-vacio">Todavía no hay periodos creados.</p>
+    {% else %}
+      <ul class="lista-plantillas">
+        {% for periodo in periodos %}
+          <li>
+            <a href="{{ url_for('ver_periodo', periodo_id=periodo['id']) }}">
+              {{ periodo["nombre"] }} — {{ periodo["porcentaje"] }}% de la materia ({{ periodo["numero_clases"] }} clases)
+            </a>
+            <a href="{{ url_for('reporte_asistencia', periodo_id=periodo['id']) }}" class="boton-editar" style="text-decoration:none; margin-left:8px;">Reporte de fallas</a>
+            <form class="form-eliminar" method="POST"
+                  action="{{ url_for('editar_periodo_porcentaje', periodo_id=periodo['id']) }}">
+              <input class="input-porcentaje" type="number" step="0.1" min="0" max="100"
+                     name="porcentaje" value="{{ periodo['porcentaje'] }}" required>
+              <button type="submit" class="boton-editar">Guardar %</button>
+            </form>
+            <form class="form-eliminar" method="POST"
+                  action="{{ url_for('eliminar_periodo', periodo_id=periodo['id']) }}"
+                  onsubmit="return confirm('¿Seguro que quieres eliminar este periodo? Se borrarán también sus evaluaciones, las notas y la asistencia.');">
+              <button type="submit" class="boton-eliminar">Eliminar</button>
+            </form>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+
+    <h2>Crear evaluación</h2>
+    {% if periodos|length == 0 %}
+      <p class="mensaje-vacio">Primero crea un periodo para poder agregarle evaluaciones.</p>
+    {% else %}
+      <form class="form-plantilla" method="POST" action="{{ url_for('nueva_evaluacion', plantilla_id=plantilla['id']) }}">
+        <label class="campo" for="periodo_id">
+          <span class="campo__etiqueta">Periodo</span>
+          <select class="campo__input" id="periodo_id" name="periodo_id" required>
+            {% for periodo in periodos %}
+              <option value="{{ periodo['id'] }}">{{ periodo["nombre"] }}</option>
+            {% endfor %}
+          </select>
+        </label>
+        <label class="campo" for="nombre_evaluacion">
+          <span class="campo__etiqueta">Nombre</span>
+          <input class="campo__input" type="text" id="nombre_evaluacion" name="nombre" placeholder="Ej. Examen 1" required>
+        </label>
+        <label class="campo" for="porcentaje">
+          <span class="campo__etiqueta">Porcentaje dentro del periodo</span>
+          <input class="campo__input" type="number" step="0.1" min="0" max="100" id="porcentaje" name="porcentaje" placeholder="Ej. 30" required>
+        </label>
+        <button class="boton-primario" type="submit">Crear evaluación</button>
+      </form>
+    {% endif %}
+
+    <h2>Notas por periodo</h2>
+    {% if estudiantes|length == 0 %}
+      <p class="mensaje-vacio">Todavía no hay estudiantes en esta clase.</p>
+    {% elif periodos|length == 0 %}
+      <p class="mensaje-vacio">Todavía no hay periodos creados.</p>
+    {% else %}
+      {% for periodo in periodos %}
+        {% set evaluaciones_periodo = evaluaciones|selectattr("periodo_id", "equalto", periodo["id"])|list %}
+        <h3>{{ periodo["nombre"] }} ({{ periodo["porcentaje"] }}% de la materia)</h3>
+        {% if evaluaciones_periodo|length == 0 %}
+          <p class="mensaje-vacio">Todavía no hay evaluaciones en este periodo.</p>
+        {% else %}
+          <table class="tabla-notas">
+            <thead>
+              <tr>
+                <th>Estudiante</th>
+                {% for evaluacion in evaluaciones_periodo %}
+                  <th>
+                    {{ evaluacion["nombre"] }} ({{ evaluacion["porcentaje"] }}%)
+                    <form class="form-eliminar" method="POST"
+                          action="{{ url_for('editar_evaluacion_porcentaje', evaluacion_id=evaluacion['id']) }}">
+                      <input class="input-porcentaje" type="number" step="0.1" min="0" max="100"
+                             name="porcentaje" value="{{ evaluacion['porcentaje'] }}" required>
+                      <button type="submit" class="boton-editar">Guardar %</button>
+                    </form>
+                    <form class="form-eliminar" method="POST"
+                          action="{{ url_for('eliminar_evaluacion', evaluacion_id=evaluacion['id']) }}"
+                          onsubmit="return confirm('¿Seguro que quieres eliminar esta evaluación? Se borrarán también las notas de todos los estudiantes en ella.');">
+                      <button type="submit" class="boton-eliminar">Eliminar</button>
+                    </form>
+                  </th>
+                {% endfor %}
+                <th>Promedio periodo</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for estudiante in estudiantes %}
+                <tr>
+                  <td>{{ estudiante["nombre"] }}</td>
+                  {% for evaluacion in evaluaciones_periodo %}
+                    <td>
+                      <form method="POST" action="{{ url_for('guardar_nota', plantilla_id=plantilla['id']) }}">
+                        <input type="hidden" name="estudiante_id" value="{{ estudiante['id'] }}">
+                        <input type="hidden" name="evaluacion_id" value="{{ evaluacion['id'] }}">
+                        <input
+                          class="campo__input"
+                          type="number" step="0.1" min="1" max="5"
+                          name="valor"
+                          value="{{ notas.get(estudiante['id'], {}).get(evaluacion['id'], '') }}"
+                          onchange="this.form.submit()"
+                        >
+                      </form>
+                    </td>
+                  {% endfor %}
+                  <td>
+                    {% set promedio_periodo = promedios[estudiante['id']]['periodos'][periodo['id']] %}
+                    {{ promedio_periodo if promedio_periodo is not none else "-" }}
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        {% endif %}
+      {% endfor %}
+
+      <h3>Resumen de la materia</h3>
+      <table class="tabla-notas">
+        <thead>
+          <tr>
+            <th>Estudiante</th>
+            <th>Promedio final</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for estudiante in estudiantes %}
+            {% set resultado = promedios[estudiante['id']] %}
+            <tr>
+              <td>{{ estudiante["nombre"] }}</td>
+              <td>{{ resultado["final"] if resultado["final"] is not none else "-" }}</td>
+              <td>
+                {% if resultado["final"] is none %}
+                  Sin notas
+                {% elif resultado["completo"] and resultado["aprobado"] %}
+                  Ganó la materia
+                {% elif resultado["completo"] and not resultado["aprobado"] %}
+                  Perdió la materia
+                {% else %}
+                  En curso
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% endif %}
+
+    <h2>Estudiantes</h2>
+    {% if estudiantes|length == 0 %}
+      <p class="mensaje-vacio">Todavía no hay estudiantes en esta clase.</p>
+    {% else %}
+      <ul class="lista-plantillas">
+        {% for estudiante in estudiantes %}
+          <li>
+            {{ estudiante["nombre"] }}
+            <form class="form-eliminar" method="POST"
+                  action="{{ url_for('eliminar_estudiante', estudiante_id=estudiante['id']) }}"
+                  onsubmit="return confirm('¿Seguro que quieres eliminar a este estudiante? Se borrarán también sus notas y su asistencia.');">
+              <button type="submit" class="boton-eliminar">Eliminar</button>
+            </form>
+          </li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  </main>
+</body>
+</html>

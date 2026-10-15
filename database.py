@@ -39,14 +39,16 @@ def crear_tablas():
     """)
 
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS evaluacion (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            plantilla_id INTEGER NOT NULL,
-            nombre TEXT NOT NULL,
-            porcentaje REAL NOT NULL,
-            FOREIGN KEY (plantilla_id) REFERENCES plantilla(id)
-        )
-    """)
+    CREATE TABLE IF NOT EXISTS evaluacion (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        plantilla_id INTEGER NOT NULL,
+        periodo_id INTEGER,
+        nombre TEXT NOT NULL,
+        porcentaje REAL NOT NULL,
+        FOREIGN KEY (plantilla_id) REFERENCES plantilla(id),
+        FOREIGN KEY (periodo_id) REFERENCES periodo(id)
+    )
+""")
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS nota (
@@ -65,6 +67,7 @@ def crear_tablas():
             plantilla_id INTEGER NOT NULL,
             nombre TEXT NOT NULL,
             numero_clases INTEGER NOT NULL,
+            porcentaje REAL NOT NULL DEFAULT 0,
             FOREIGN KEY (plantilla_id) REFERENCES plantilla(id)
         )
     """)
