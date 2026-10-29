@@ -5,35 +5,167 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NOVAN · Panel del profesor</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  <style>
+    .barra-superior__nombre {
+      color: #D9F5EC;
+      font-weight: 500;
+    }
+
+    .contenido-dashboard__encabezado {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+    .contenido-dashboard__encabezado h1 { margin: 0; }
+    .contenido-dashboard__sub {
+      margin: 6px 0 0;
+      color: var(--gris);
+      font-size: 1.05rem;
+    }
+
+    .boton-primario--chico {
+      display: inline-block;
+      width: auto;
+      margin: 0;
+      padding: 13px 26px;
+      text-decoration: none;
+    }
+
+    .grid-plantillas {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 22px;
+      margin-top: 28px;
+    }
+
+    .tarjeta-plantilla {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      padding: 28px 24px 22px;
+      overflow: hidden;
+      border-radius: 22px;
+      background: #fff;
+      box-shadow: var(--sombra);
+      color: var(--texto);
+      text-decoration: none;
+      transition: transform 0.18s, box-shadow 0.18s;
+    }
+    .tarjeta-plantilla::before {
+      content: "";
+      position: absolute;
+      inset: 0 0 auto 0;
+      height: 6px;
+      background: linear-gradient(90deg, var(--menta), var(--verde-osc));
+    }
+    .tarjeta-plantilla:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 18px 40px rgba(6, 60, 50, 0.18);
+    }
+
+    .tarjeta-inicial {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 54px;
+      height: 54px;
+      margin-bottom: 10px;
+      border-radius: 16px;
+      background: linear-gradient(145deg, #12B08F, #067A66);
+      box-shadow: 0 8px 18px rgba(6, 122, 102, 0.3);
+      color: #fff;
+      font-size: 1.5rem;
+      font-weight: 700;
+    }
+
+    .contenido-dashboard .tarjeta-plantilla h2 {
+      margin: 0;
+      padding: 0;
+      border: 0;
+      font-size: 1.3rem;
+      line-height: 1.2;
+    }
+    .tarjeta-plantilla p {
+      margin: 0;
+      color: var(--gris);
+    }
+    .tarjeta-abrir {
+      margin-top: 18px;
+      color: var(--verde-osc);
+      font-weight: 700;
+    }
+
+    .tarjeta-nueva {
+      align-items: center;
+      justify-content: center;
+      min-height: 200px;
+      border: 2px dashed var(--verde);
+      background: transparent;
+      box-shadow: none;
+      color: var(--verde-osc);
+      font-weight: 700;
+      text-align: center;
+    }
+    .tarjeta-nueva::before { display: none; }
+    .tarjeta-nueva:hover {
+      background: var(--suave);
+      box-shadow: none;
+    }
+    .tarjeta-nueva .mas {
+      font-size: 2.6rem;
+      line-height: 1;
+    }
+  </style>
 </head>
 <body class="cuerpo-dashboard">
 
   <header class="barra-superior">
     <span class="marca marca--pequena">NOVAN</span>
     <div class="barra-superior__derecha">
-      <span class="barra-superior__nombre">Hola, {{ nombre }}</span>
+      <span class="barra-superior__nombre">Hola, {{ nombre.split(' ')[0] }}</span>
       <a href="{{ url_for('logout') }}" class="boton-secundario">Cerrar sesión</a>
     </div>
   </header>
 
   <main class="contenido-dashboard">
     <div class="contenido-dashboard__encabezado">
-      <h1>Tus clases</h1>
+      <div>
+        <h1>Tus clases</h1>
+        <p class="contenido-dashboard__sub">
+          {% if plantillas|length == 0 %}
+            Crea tu primera clase para empezar.
+          {% elif plantillas|length == 1 %}
+            Tienes 1 clase.
+          {% else %}
+            Tienes {{ plantillas|length }} clases.
+          {% endif %}
+        </p>
+      </div>
       <a href="{{ url_for('nueva_plantilla') }}" class="boton-primario boton-primario--chico">+ Nueva clase</a>
     </div>
 
     {% if plantillas|length == 0 %}
-      <p class="mensaje-vacio">Todavía no tienes clases creadas. Crea la primera para empezar a registrar estudiantes, notas y asistencia.</p>
+      <p class="mensaje-vacio" style="margin-top: 28px;">Todavía no tienes clases creadas. Crea la primera para empezar a registrar estudiantes, notas y asistencia.</p>
     {% else %}
       <div class="grid-plantillas">
         {% for plantilla in plantillas %}
-         <a href="{{ url_for('ver_plantilla', plantilla_id=plantilla['id']) }}" class="tarjeta-plantilla">
+          <a href="{{ url_for('ver_plantilla', plantilla_id=plantilla['id']) }}" class="tarjeta-plantilla">
+            <span class="tarjeta-inicial">{{ plantilla["nombre_salon"][:1]|upper }}</span>
             <h2>{{ plantilla["nombre_salon"] }}</h2>
             <p>{{ plantilla["materia"] }}</p>
+            <span class="tarjeta-abrir">Abrir clase →</span>
           </a>
         {% endfor %}
+
+        <a href="{{ url_for('nueva_plantilla') }}" class="tarjeta-plantilla tarjeta-nueva">
+          <span class="mas">+</span>
+          <span>Nueva clase</span>
+        </a>
       </div>
     {% endif %}
   </main>

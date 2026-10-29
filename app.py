@@ -1,12 +1,21 @@
+import math
+import re
+from datetime import timedelta
+from decimal import Decimal, ROUND_HALF_UP
 from functools import wraps
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 from database import conectar
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 
 app = Flask(__name__)
 app.secret_key = "cambia_esto_por_algo_secreto"
 
+# Si el profesor marca "Recordar mi cuenta", la sesión dura 31 días
+app.permanent_session_lifetime = timedelta(days=31)
+
 NOTA_MINIMA_APROBATORIA = 3.0
+NOTA_MINIMA_ESCALA = 1.0
+NOTA_MAXIMA_ESCALA = 5.0
 
 # --- Decorador para proteger rutas que requieren sesión activa ---
 def login_required(f):
@@ -18,12 +27,69 @@ def login_required(f):
     return decorada
 
 
+def redondear_1(valor):
+    """Redondea a un decimal como en el colegio: 3.25 -> 3.3 (la mitad sube)."""
+    return float(Decimal(str(round(valor, 6))).quantize(Decimal("0.1"), rounding=ROUND_HALF_UP))
+
+
+# ============================================================
+# FORMATO DE PORCENTAJES
+# 15.0 -> "15"      12.5 -> "12,5"      (para mostrar en pantalla)
+# 15.0 -> "15"      12.5 -> "12.5"      (para las casillas de editar,
+#                                        que necesitan punto decimal)
+# ============================================================
+
+@app.template_filter("pct")
+def formato_porcentaje(valor):
+    try:
+        numero = float(valor)
+    except (TypeError, ValueError):
+        return valor
+    if numero == int(numero):
+        return str(int(numero))
+    return ("%g" % round(numero, 2)).replace(".", ",")
+
+
+@app.template_filter("pct_input")
+def formato_porcentaje_input(valor):
+    try:
+        numero = float(valor)
+    except (TypeError, ValueError):
+        return valor
+    if numero == int(numero):
+        return str(int(numero))
+    return "%g" % round(numero, 2)
+
+
+def normalizar_nota(texto):
+    """
+    Convierte lo que escribe el profesor en una nota válida.
+      "29"  -> 2.9      "45" -> 4.5      "10" -> 1.0
+      "3"   -> 3.0      "2,9" o "2.9" -> 2.9
+      ""    -> ""  (casilla vacía, se borra la nota)
+    Devuelve None si no es válida (fuera de 1.0 a 5.0 o con formato raro).
+    """
+    t = (texto or "").strip().replace(",", ".")
+    if t == "":
+        return ""
+    if re.fullmatch(r"\d{2}", t):
+        numero = int(t) / 10
+    elif re.fullmatch(r"\d(\.\d)?", t):
+        numero = float(t)
+    else:
+        return None
+    if numero < NOTA_MINIMA_ESCALA or numero > NOTA_MAXIMA_ESCALA:
+        return None
+    return round(numero, 1)
+
+
 def calcular_promedios(estudiantes, periodos, evaluaciones, notas):
     resultados = {}
 
     for estudiante in estudiantes:
         est_id = estudiante["id"]
         promedio_por_periodo = {}
+        detalle_por_periodo = {}
         suma_final = 0
         suma_porcentaje_periodos_calificados = 0
 
@@ -33,23 +99,66 @@ def calcular_promedios(estudiantes, periodos, evaluaciones, notas):
 
             suma_ponderada = 0
             suma_porcentaje_evaluaciones = 0
+            porcentaje_total_periodo = 0
+            evaluaciones_con_nota = 0
 
             for evaluacion in evaluaciones_periodo:
+                peso = float(evaluacion["porcentaje"])
+                porcentaje_total_periodo += peso
                 valor = notas.get(est_id, {}).get(evaluacion["id"])
                 if valor is not None and valor != "":
-                    suma_ponderada += float(valor) * float(evaluacion["porcentaje"])
-                    suma_porcentaje_evaluaciones += float(evaluacion["porcentaje"])
+                    suma_ponderada += float(valor) * peso
+                    suma_porcentaje_evaluaciones += peso
+                    evaluaciones_con_nota += 1
 
+            # --- Resumen de este periodo ---
+            # nota: promedio del periodo con lo que lleva
+            # estado: ganado / perdido (solo si tiene TODAS las notas),
+            #         curso (faltan notas) o sin_notas
+            # para_ganar: 3.0 si el periodo está completo; si faltan notas,
+            #             lo que debe sacar en las evaluaciones que faltan
+            detalle = {"nota": None, "estado": "sin_notas", "para_ganar": None}
+
+            if evaluaciones_periodo and porcentaje_total_periodo > 0:
+                completo = evaluaciones_con_nota == len(evaluaciones_periodo)
+
+                if suma_porcentaje_evaluaciones > 0:
+                    nota_periodo = redondear_1(suma_ponderada / suma_porcentaje_evaluaciones)
+                    detalle["nota"] = nota_periodo
+                    if completo:
+                        if nota_periodo >= NOTA_MINIMA_APROBATORIA:
+                            detalle["estado"] = "ganado"
+                        else:
+                            detalle["estado"] = "perdido"
+                    else:
+                        detalle["estado"] = "curso"
+
+                if completo:
+                    detalle["para_ganar"] = {"tipo": "minimo", "valor": NOTA_MINIMA_APROBATORIA}
+                else:
+                    restante = porcentaje_total_periodo - suma_porcentaje_evaluaciones
+                    necesario = (NOTA_MINIMA_APROBATORIA * porcentaje_total_periodo - suma_ponderada) / restante
+                    if necesario > NOTA_MAXIMA_ESCALA:
+                        detalle["para_ganar"] = {"tipo": "imposible", "valor": None}
+                    else:
+                        valor_necesario = max(math.ceil(round(necesario * 10, 6)) / 10, NOTA_MINIMA_ESCALA)
+                        detalle["para_ganar"] = {"tipo": "necesita", "valor": valor_necesario}
+
+            detalle_por_periodo[periodo_id] = detalle
+
+            # --- Aporte del periodo a la materia ---
             if suma_porcentaje_evaluaciones > 0:
-                promedio_periodo = suma_ponderada / suma_porcentaje_evaluaciones
-                promedio_por_periodo[periodo_id] = round(promedio_periodo, 1)
+                # La nota del periodo se redondea a un decimal ANTES de
+                # multiplicarla por el porcentaje del periodo.
+                promedio_periodo = redondear_1(suma_ponderada / suma_porcentaje_evaluaciones)
+                promedio_por_periodo[periodo_id] = promedio_periodo
                 suma_final += promedio_periodo * float(periodo["porcentaje"])
                 suma_porcentaje_periodos_calificados += float(periodo["porcentaje"])
             else:
                 promedio_por_periodo[periodo_id] = None
 
         if suma_porcentaje_periodos_calificados > 0:
-            promedio_final = suma_final / suma_porcentaje_periodos_calificados
+            promedio_final = redondear_1(suma_final / suma_porcentaje_periodos_calificados)
         else:
             promedio_final = None
 
@@ -62,11 +171,37 @@ def calcular_promedios(estudiantes, periodos, evaluaciones, notas):
         if promedio_final is not None:
             aprobado = promedio_final >= NOTA_MINIMA_APROBATORIA
 
+        # --- Cálculo de toda la materia (por si se necesita más adelante) ---
+        puntos_acumulados = suma_final / 100
+        porcentaje_restante = 100 - suma_porcentaje_periodos_calificados
+
+        # Nombres de los periodos que todavía no tienen ninguna nota
+        periodos_faltantes = [
+            p["nombre"] for p in periodos if promedio_por_periodo[p["id"]] is None
+        ]
+
+        meta = None
+        if suma_porcentaje_periodos_calificados > 0 and not materia_completa:
+            necesario = (NOTA_MINIMA_APROBATORIA - puntos_acumulados) / (porcentaje_restante / 100)
+            if necesario <= NOTA_MINIMA_ESCALA:
+                meta = {"tipo": "ganada", "valor": None}
+            elif necesario > NOTA_MAXIMA_ESCALA:
+                meta = {"tipo": "imposible", "valor": None}
+            else:
+                # Se redondea hacia arriba a un decimal para que la nota alcance
+                valor = math.ceil(round(necesario * 10, 6)) / 10
+                meta = {"tipo": "necesita", "valor": valor}
+
         resultados[est_id] = {
             "periodos": promedio_por_periodo,
-            "final": round(promedio_final, 1) if promedio_final is not None else None,
+            "detalle": detalle_por_periodo,
+            "final": promedio_final,
             "completo": materia_completa,
             "aprobado": aprobado,
+            "acumulado": round(puntos_acumulados, 2),
+            "restante": round(porcentaje_restante, 1),
+            "faltantes": periodos_faltantes,
+            "meta": meta,
         }
 
     return resultados
@@ -79,16 +214,19 @@ def inicio():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        correo = request.form.get("correo")
+        correo = (request.form.get("correo") or "").strip().lower()
         clave = request.form.get("clave")
 
         conexion = conectar()
         cursor = conexion.cursor()
-        cursor.execute("SELECT * FROM profesor WHERE correo = ?", (correo,))
+        cursor.execute("SELECT * FROM profesor WHERE LOWER(correo) = ?", (correo,))
         profesor = cursor.fetchone()
         conexion.close()
 
         if profesor and check_password_hash(profesor["password_hash"], clave):
+            # Con la casilla "Recordar mi cuenta" marcada, la sesión
+            # sigue activa aunque se cierre el navegador (31 días).
+            session.permanent = bool(request.form.get("recordar"))
             session["profesor_id"] = profesor["id"]
             session["profesor_nombre"] = profesor["nombre"]
             return redirect(url_for("dashboard"))
@@ -96,6 +234,56 @@ def login():
             return render_template("login.html", error="Correo o contraseña incorrectos")
 
     return render_template("login.html")
+
+
+# ============================================================
+# REGISTRO DE PROFESORES
+# Crea una cuenta nueva con la contraseña cifrada y entra directo
+# al panel. El correo se guarda en minúsculas y no se puede repetir.
+# ============================================================
+
+@app.route("/registro", methods=["GET", "POST"])
+def registro():
+    if request.method == "POST":
+        nombre = (request.form.get("nombre") or "").strip()
+        correo = (request.form.get("correo") or "").strip().lower()
+        clave = request.form.get("clave") or ""
+        confirmar = request.form.get("confirmar") or ""
+
+        error = None
+        if not nombre or not correo or not clave:
+            error = "Completa todos los campos."
+        elif "@" not in correo or "." not in correo.split("@")[-1]:
+            error = "Escribe un correo válido."
+        elif len(clave) < 6:
+            error = "La contraseña debe tener al menos 6 caracteres."
+        elif clave != confirmar:
+            error = "Las contraseñas no coinciden."
+
+        if error is None:
+            conexion = conectar()
+            cursor = conexion.cursor()
+            cursor.execute("SELECT id FROM profesor WHERE LOWER(correo) = ?", (correo,))
+            if cursor.fetchone() is not None:
+                error = "Ya existe una cuenta con ese correo."
+                conexion.close()
+            else:
+                cursor.execute(
+                    "INSERT INTO profesor (nombre, correo, password_hash) VALUES (?, ?, ?)",
+                    (nombre, correo, generate_password_hash(clave))
+                )
+                conexion.commit()
+                profesor_id = cursor.lastrowid
+                conexion.close()
+
+                session["profesor_id"] = profesor_id
+                session["profesor_nombre"] = nombre
+                return redirect(url_for("dashboard"))
+
+        return render_template("registro.html", error=error, nombre=nombre, correo=correo)
+
+    return render_template("registro.html")
+
 
 @app.route("/logout")
 def logout():
@@ -140,6 +328,14 @@ def nueva_plantilla():
 
     return render_template("nueva_plantilla.html")
 
+
+# ============================================================
+# PLANTILLA DE LA CLASE (la hoja completa)
+# Estudiantes, periodos, evaluaciones, notas y asistencia en una
+# sola pantalla. En la asistencia: A = asistió, F = falta,
+# E = excusa y la casilla vacía significa sin registrar.
+# ============================================================
+
 @app.route("/plantilla/<int:plantilla_id>", methods=["GET", "POST"])
 @login_required
 def ver_plantilla(plantilla_id):
@@ -156,28 +352,32 @@ def ver_plantilla(plantilla_id):
         conexion.close()
         return redirect(url_for("dashboard"))
 
+    # Agregar un estudiante (y volver a cargar la hoja)
     if request.method == "POST":
-        nombre_estudiante = request.form.get("nombre")
-        cursor.execute(
-            "INSERT INTO estudiante (plantilla_id, nombre) VALUES (?, ?)",
-            (plantilla_id, nombre_estudiante)
-        )
-        conexion.commit()
+        nombre_estudiante = (request.form.get("nombre") or "").strip()
+        if nombre_estudiante:
+            cursor.execute(
+                "INSERT INTO estudiante (plantilla_id, nombre) VALUES (?, ?)",
+                (plantilla_id, nombre_estudiante)
+            )
+            conexion.commit()
+        conexion.close()
+        return redirect(url_for("ver_plantilla", plantilla_id=plantilla_id))
 
     cursor.execute(
-        "SELECT * FROM estudiante WHERE plantilla_id = ?",
+        "SELECT * FROM estudiante WHERE plantilla_id = ? ORDER BY id",
         (plantilla_id,)
     )
     estudiantes = cursor.fetchall()
 
     cursor.execute(
-        "SELECT * FROM periodo WHERE plantilla_id = ?",
+        "SELECT * FROM periodo WHERE plantilla_id = ? ORDER BY id",
         (plantilla_id,)
     )
     periodos = cursor.fetchall()
 
     cursor.execute(
-        "SELECT * FROM evaluacion WHERE plantilla_id = ?",
+        "SELECT * FROM evaluacion WHERE plantilla_id = ? ORDER BY id",
         (plantilla_id,)
     )
     evaluaciones = cursor.fetchall()
@@ -197,7 +397,44 @@ def ver_plantilla(plantilla_id):
             notas[est_id] = {}
         notas[est_id][eva_id] = fila["valor"]
 
+    # Asistencia de todos los periodos de esta clase:
+    #   asistencia[periodo][estudiante][clase] = "A", "F" o "E"
+    #   conteos[periodo][estudiante] = {"A": cuántas, "F": cuántas, "E": cuántas}
+    cursor.execute("""
+        SELECT asistencia.* FROM asistencia
+        JOIN periodo ON asistencia.periodo_id = periodo.id
+        WHERE periodo.plantilla_id = ?
+    """, (plantilla_id,))
+    filas_asistencia = cursor.fetchall()
+
     conexion.close()
+
+    asistencia = {}
+    conteos = {}
+    for fila in filas_asistencia:
+        estado = (fila["estado"] or "").lower()
+        if "falta" in estado:
+            marca = "F"
+        elif "excusa" in estado:
+            marca = "E"
+        elif "asisti" in estado:
+            marca = "A"
+        else:
+            continue  # vacío: sin registrar
+        asistencia.setdefault(fila["periodo_id"], {}).setdefault(
+            fila["estudiante_id"], {}
+        )[fila["numero_clase"]] = marca
+        cuenta = conteos.setdefault(fila["periodo_id"], {}).setdefault(
+            fila["estudiante_id"], {"A": 0, "F": 0, "E": 0}
+        )
+        cuenta[marca] += 1
+
+    # Cuánto suman las evaluaciones de cada periodo y los periodos entre sí
+    suma_evaluaciones = {
+        p["id"]: sum(float(e["porcentaje"]) for e in evaluaciones if e["periodo_id"] == p["id"])
+        for p in periodos
+    }
+    suma_periodos = sum(float(p["porcentaje"]) for p in periodos)
 
     promedios = calcular_promedios(estudiantes, periodos, evaluaciones, notas)
 
@@ -208,8 +445,79 @@ def ver_plantilla(plantilla_id):
         evaluaciones=evaluaciones,
         notas=notas,
         periodos=periodos,
-        promedios=promedios
+        promedios=promedios,
+        asistencia=asistencia,
+        conteos=conteos,
+        suma_evaluaciones=suma_evaluaciones,
+        suma_periodos=suma_periodos
     )
+
+
+# ============================================================
+# GUARDAR UNA CASILLA DE ASISTENCIA (se llama sin recargar la página)
+# A -> "Asistio", F -> "Falta", E -> "Excusa", vacío -> se borra
+# ============================================================
+
+@app.route("/plantilla/<int:plantilla_id>/asistencia/guardar", methods=["POST"])
+@login_required
+def guardar_asistencia(plantilla_id):
+    estados = {"A": "Asistio", "F": "Falta", "E": "Excusa", "": None}
+    marca = (request.form.get("marca") or "").strip().upper()
+    if marca not in estados:
+        return jsonify(ok=False, error="Marca no válida"), 400
+
+    try:
+        estudiante_id = int(request.form.get("estudiante_id"))
+        periodo_id = int(request.form.get("periodo_id"))
+        numero_clase = int(request.form.get("numero_clase"))
+    except (TypeError, ValueError):
+        return jsonify(ok=False, error="Datos incompletos"), 400
+
+    conexion = conectar()
+    cursor = conexion.cursor()
+
+    cursor.execute(
+        "SELECT id FROM plantilla WHERE id = ? AND profesor_id = ?",
+        (plantilla_id, session["profesor_id"])
+    )
+    if cursor.fetchone() is None:
+        conexion.close()
+        return jsonify(ok=False, error="Clase no encontrada"), 404
+
+    cursor.execute(
+        "SELECT numero_clases FROM periodo WHERE id = ? AND plantilla_id = ?",
+        (periodo_id, plantilla_id)
+    )
+    periodo = cursor.fetchone()
+    cursor.execute(
+        "SELECT id FROM estudiante WHERE id = ? AND plantilla_id = ?",
+        (estudiante_id, plantilla_id)
+    )
+    estudiante = cursor.fetchone()
+
+    if (
+        periodo is None
+        or estudiante is None
+        or numero_clase < 1
+        or numero_clase > int(periodo["numero_clases"])
+    ):
+        conexion.close()
+        return jsonify(ok=False, error="Datos no válidos"), 400
+
+    cursor.execute(
+        "DELETE FROM asistencia WHERE periodo_id = ? AND estudiante_id = ? AND numero_clase = ?",
+        (periodo_id, estudiante_id, numero_clase)
+    )
+    if estados[marca] is not None:
+        cursor.execute(
+            "INSERT INTO asistencia (periodo_id, estudiante_id, numero_clase, estado) VALUES (?, ?, ?, ?)",
+            (periodo_id, estudiante_id, numero_clase, estados[marca])
+        )
+
+    conexion.commit()
+    conexion.close()
+    return jsonify(ok=True)
+
 
 @app.route("/plantilla/<int:plantilla_id>/evaluacion/nueva", methods=["POST"])
 @login_required
@@ -257,7 +565,12 @@ def guardar_nota(plantilla_id):
 
     estudiante_id = request.form.get("estudiante_id")
     evaluacion_id = request.form.get("evaluacion_id")
-    valor = request.form.get("valor")
+
+    # Convierte lo escrito (29 -> 2.9) y rechaza lo que esté fuera de 1.0 a 5.0
+    valor = normalizar_nota(request.form.get("valor"))
+    if valor is None:
+        conexion.close()
+        return redirect(url_for("ver_plantilla", plantilla_id=plantilla_id))
 
     cursor.execute(
         "SELECT * FROM nota WHERE estudiante_id = ? AND evaluacion_id = ?",
@@ -571,9 +884,9 @@ def editar_evaluacion_porcentaje(evaluacion_id):
 
 # ============================================================
 # REPORTE DE ASISTENCIA POR PERIODO
-# Cuenta, por estudiante, cuántas veces tiene cada estado
-# (Asistió, Falta, Excusa...) y calcula el porcentaje de fallas
-# sobre el número de clases del periodo.
+# Por estudiante: cuántas veces asistió (A), faltó (F), tuvo
+# excusa (E), cuántas clases están sin registrar y el porcentaje
+# de fallas sobre el total de clases del periodo.
 # ============================================================
 
 @app.route("/periodo/<int:periodo_id>/reporte")
@@ -596,7 +909,7 @@ def reporte_asistencia(periodo_id):
         return redirect(url_for("dashboard"))
 
     cursor.execute(
-        "SELECT * FROM estudiante WHERE plantilla_id = ?",
+        "SELECT * FROM estudiante WHERE plantilla_id = ? ORDER BY id",
         (periodo["plantilla_id"],)
     )
     estudiantes = cursor.fetchall()
@@ -610,35 +923,40 @@ def reporte_asistencia(periodo_id):
     filas = cursor.fetchall()
     conexion.close()
 
-    # Estados que existen realmente en la base de datos (columnas del reporte)
-    estados = sorted({fila["estado"] for fila in filas})
-
     conteos = {}
     for fila in filas:
-        conteos.setdefault(fila["estudiante_id"], {})[fila["estado"]] = fila["total"]
+        estado = (fila["estado"] or "").lower()
+        cuenta = conteos.setdefault(
+            fila["estudiante_id"], {"asistio": 0, "fallas": 0, "excusas": 0}
+        )
+        if "falta" in estado:
+            cuenta["fallas"] += fila["total"]
+        elif "excusa" in estado:
+            cuenta["excusas"] += fila["total"]
+        elif "asisti" in estado:
+            cuenta["asistio"] += fila["total"]
 
     numero_clases = int(periodo["numero_clases"])
     resumen = []
     for estudiante in estudiantes:
-        por_estado = conteos.get(estudiante["id"], {})
-        registradas = sum(por_estado.values())
-        fallas = sum(
-            total for estado, total in por_estado.items()
-            if "falta" in estado.lower()
-        )
+        cuenta = conteos.get(estudiante["id"], {"asistio": 0, "fallas": 0, "excusas": 0})
+        asistio = cuenta["asistio"]
+        fallas = cuenta["fallas"]
+        excusas = cuenta["excusas"]
+        sin_registrar = max(numero_clases - asistio - fallas - excusas, 0)
         porcentaje_fallas = round(fallas / numero_clases * 100, 1) if numero_clases > 0 else 0
         resumen.append({
             "nombre": estudiante["nombre"],
-            "por_estado": por_estado,
+            "asistio": asistio,
             "fallas": fallas,
+            "excusas": excusas,
+            "sin_registrar": sin_registrar,
             "porcentaje_fallas": porcentaje_fallas,
-            "sin_registrar": max(numero_clases - registradas, 0),
         })
 
     return render_template(
         "reporte_asistencia.html",
         periodo=periodo,
-        estados=estados,
         resumen=resumen
     )
 

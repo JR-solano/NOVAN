@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NOVAN · Crear cuenta</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+</head>
+<body>
+
+  <header class="nv-barra">
+    <a class="nv-barra-marca" href="{{ url_for('login') }}">
+      <svg viewBox="0 0 100 100" aria-hidden="true">
+        <defs><linearGradient id="gN1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#00F0B5"/><stop offset="1" stop-color="#0B9E85"/></linearGradient></defs>
+        <path fill="url(#gN1)" d="M8 92V8h24l36 52V8h24v84H68L32 40v52z"/>
+      </svg>
+      <span>NOVAN</span>
+    </a>
+    <div class="nv-barra-derecha">
+      <span class="nv-barra-texto">¿Ya tienes cuenta?</span>
+      <a class="nv-barra-boton" href="{{ url_for('login') }}">Iniciar sesión</a>
+    </div>
+  </header>
+
+  <div class="nv-cuerpo">
+
+    <aside class="nv-hero">
+      <div class="nv-hero-logo">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <defs><linearGradient id="gN2" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#00F0B5"/><stop offset="1" stop-color="#0B9E85"/></linearGradient></defs>
+          <path fill="url(#gN2)" d="M8 92V8h24l36 52V8h24v84H68L32 40v52z"/>
+        </svg>OVAN
+      </div>
+    </aside>
+
+    <main class="nv-lado-form">
+      <form class="nv-tarjeta" method="POST" action="{{ url_for('registro') }}">
+
+        <span class="nv-insignia">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M19 8v6M16 11h6"/></svg>
+          Crea tu cuenta
+        </span>
+
+        {% if error %}
+          <p class="nv-error">{{ error }}</p>
+        {% endif %}
+
+        <h1 class="nv-titulo">Crear <span>cuenta</span></h1>
+        <p class="nv-sub">Regístrate como profesor para organizar tus clases.</p>
+
+        <label class="nv-campo" for="nombre">
+          <span class="nv-etiqueta">Nombre completo</span>
+          <span class="nv-caja">
+            <svg class="nv-icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+            <input class="nv-input" type="text" id="nombre" name="nombre" placeholder="Ej. María Pérez" value="{{ nombre or '' }}" required>
+          </span>
+        </label>
+
+        <label class="nv-campo" for="correo">
+          <span class="nv-etiqueta">Correo</span>
+          <span class="nv-caja">
+            <svg class="nv-icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>
+            <input class="nv-input" type="email" id="correo" name="correo" placeholder="nombre@colegio.edu" value="{{ correo or '' }}" required>
+          </span>
+        </label>
+
+        <label class="nv-campo" for="clave">
+          <span class="nv-etiqueta">Contraseña (mínimo 6 caracteres)</span>
+          <span class="nv-caja">
+            <svg class="nv-icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+            <input class="nv-input" type="password" id="clave" name="clave" placeholder="••••••••" minlength="6" required>
+            <button class="nv-ojo" type="button" id="ojo" aria-label="Mostrar contraseñas">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </span>
+        </label>
+
+        <label class="nv-campo" for="confirmar">
+          <span class="nv-etiqueta">Confirmar contraseña</span>
+          <span class="nv-caja">
+            <svg class="nv-icono" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+            <input class="nv-input" type="password" id="confirmar" name="confirmar" placeholder="••••••••" minlength="6" required>
+          </span>
+        </label>
+
+        <button class="nv-boton" type="submit">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+          Crear cuenta
+        </button>
+
+        <hr class="nv-separador">
+
+        <p class="nv-pie">
+          ¿Ya tienes cuenta? <a class="nv-link" href="{{ url_for('login') }}">Iniciar sesión</a>
+        </p>
+      </form>
+    </main>
+
+  </div>
+
+  <script>
+    var ojo = document.getElementById('ojo');
+    var campos = [document.getElementById('clave'), document.getElementById('confirmar')];
+    ojo.addEventListener('click', function () {
+      var oculta = campos[0].type === 'password';
+      campos.forEach(function (c) { c.type = oculta ? 'text' : 'password'; });
+      ojo.classList.toggle('activo', oculta);
+      ojo.setAttribute('aria-label', oculta ? 'Ocultar contraseñas' : 'Mostrar contraseñas');
+    });
+  </script>
+</body>
+</html>

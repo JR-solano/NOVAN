@@ -10,6 +10,7 @@
   <style>
     .fila-alerta td { color: #b3261e; font-weight: 600; }
     .celda-centro { text-align: center; }
+    .nota-reporte { color: var(--gris); font-size: 0.9rem; }
   </style>
 </head>
 <body class="cuerpo-dashboard">
@@ -17,7 +18,6 @@
   <header class="barra-superior">
     <span class="marca marca--pequena">NOVAN</span>
     <div class="barra-superior__derecha">
-      <a href="{{ url_for('ver_periodo', periodo_id=periodo['id']) }}" class="boton-secundario">Volver a la asistencia</a>
       <a href="{{ url_for('ver_plantilla', plantilla_id=periodo['plantilla_id']) }}" class="boton-secundario">Volver a la clase</a>
     </div>
   </header>
@@ -29,16 +29,14 @@
 
     {% if resumen|length == 0 %}
       <p class="mensaje-vacio">Todavía no hay estudiantes en esta clase.</p>
-    {% elif estados|length == 0 %}
-      <p class="mensaje-vacio">Todavía no hay asistencia registrada en este periodo.</p>
     {% else %}
       <table class="tabla-notas">
         <thead>
           <tr>
             <th>Estudiante</th>
-            {% for estado in estados %}
-              <th class="celda-centro">{{ estado }}</th>
-            {% endfor %}
+            <th class="celda-centro">Asistió (A)</th>
+            <th class="celda-centro">Faltas (F)</th>
+            <th class="celda-centro">Excusas (E)</th>
             <th class="celda-centro">Sin registrar</th>
             <th class="celda-centro">% de fallas</th>
           </tr>
@@ -47,16 +45,16 @@
           {% for fila in resumen %}
             <tr {% if fila["porcentaje_fallas"] >= 20 %}class="fila-alerta"{% endif %}>
               <td>{{ fila["nombre"] }}</td>
-              {% for estado in estados %}
-                <td class="celda-centro">{{ fila["por_estado"].get(estado, 0) }}</td>
-              {% endfor %}
+              <td class="celda-centro">{{ fila["asistio"] }}</td>
+              <td class="celda-centro">{{ fila["fallas"] }}</td>
+              <td class="celda-centro">{{ fila["excusas"] }}</td>
               <td class="celda-centro">{{ fila["sin_registrar"] }}</td>
-              <td class="celda-centro">{{ fila["porcentaje_fallas"] }}%</td>
+              <td class="celda-centro">{{ fila["porcentaje_fallas"]|pct }}%</td>
             </tr>
           {% endfor %}
         </tbody>
       </table>
-      <p class="mensaje-vacio">Las filas en rojo tienen 20 % o más de fallas sobre el total de clases del periodo.</p>
+      <p class="nota-reporte">Las filas en rojo tienen 20 % o más de fallas sobre el total de clases del periodo. "Sin registrar" son las clases que todavía no tienen ninguna marca.</p>
     {% endif %}
   </main>
 </body>

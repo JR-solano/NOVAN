@@ -1,0 +1,269 @@
+:root {
+  --esmeralda: #0FB58E;
+  --esmeralda-osc: #067A66;
+  --menta: #00E5B0;
+  --texto: #0F2A26;
+  --gris: #5F7370;
+  --borde: #D8E8E3;
+  --suave: #EAF7F2;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; min-height: 100%; }
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  color: var(--texto);
+  background: #F4FAF8;
+}
+
+/* ---------- Barra superior ---------- */
+.nv-barra {
+  height: 86px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 clamp(20px, 5vw, 72px);
+  background: linear-gradient(90deg, #052520, #0A3A33);
+  border-bottom: 1px solid rgba(0, 229, 176, 0.25);
+}
+.nv-barra-marca {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #fff;
+  text-decoration: none;
+}
+.nv-barra-marca svg { height: 40px; width: auto; }
+.nv-barra-marca span {
+  font-family: 'Lora', Georgia, serif;
+  font-size: 1.9rem;
+  letter-spacing: 0.12em;
+}
+.nv-barra-derecha {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  color: #D9F5EC;
+  font-size: 0.95rem;
+}
+.nv-barra-boton {
+  padding: 11px 22px;
+  border: 1.5px solid var(--menta);
+  border-radius: 999px;
+  color: var(--menta);
+  font-weight: 600;
+  text-decoration: none;
+  transition: background .15s, color .15s;
+}
+.nv-barra-boton:hover { background: var(--menta); color: #052520; }
+
+/* ---------- Estructura de dos columnas ---------- */
+.nv-cuerpo {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  min-height: calc(100vh - 86px);
+}
+
+/* ---------- Lado izquierdo: marca grande ---------- */
+.nv-hero {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(circle at 15% 85%, rgba(15, 181, 142, 0.35), transparent 45%),
+    linear-gradient(160deg, #0B3F37 0%, #062B26 55%, #041E1B 100%);
+  /* Para usar una foto, quita los comentarios de las 2 líneas de abajo
+     y guarda tu imagen como static/img/fondo.jpg
+  background-image: linear-gradient(160deg, rgba(6,43,38,.78), rgba(4,30,27,.88)), url('../img/fondo.jpg');
+  background-size: cover; background-position: center; */
+}
+.nv-hero::before,
+.nv-hero::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  border: 80px solid rgba(15, 181, 142, 0.5);
+  pointer-events: none;
+}
+.nv-hero::before { width: 760px; height: 760px; left: -480px; top: -420px; }
+.nv-hero::after  { width: 760px; height: 760px; left: -520px; bottom: -480px; }
+
+.nv-hero-logo {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  font-weight: 800;
+  font-size: clamp(3rem, 8.5vw, 8rem);
+  line-height: 1;
+  color: #fff;
+  letter-spacing: 0.01em;
+}
+.nv-hero-logo svg {
+  height: 0.82em;
+  width: auto;
+  margin-right: 0.06em;
+  filter: drop-shadow(0 6px 18px rgba(0, 229, 176, 0.35));
+}
+
+/* ---------- Lado derecho: tarjeta ---------- */
+.nv-lado-form {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  background:
+    radial-gradient(circle at 92% 92%, rgba(15, 181, 142, 0.14), transparent 40%),
+    radial-gradient(circle at 8% 0%, rgba(15, 181, 142, 0.08), transparent 35%),
+    #F4FAF8;
+}
+.nv-tarjeta {
+  width: 100%;
+  max-width: 560px;
+  background: #fff;
+  border-radius: 28px;
+  padding: 44px 48px;
+  box-shadow: 0 24px 60px rgba(6, 60, 50, 0.12);
+}
+.nv-insignia {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  background: var(--suave);
+  color: var(--esmeralda-osc);
+  font-weight: 600;
+  font-size: 0.9rem;
+  margin-bottom: 18px;
+}
+.nv-insignia svg { width: 18px; height: 18px; }
+.nv-titulo {
+  margin: 0 0 8px;
+  font-size: clamp(2rem, 4vw, 2.7rem);
+  font-weight: 700;
+  line-height: 1.1;
+}
+.nv-titulo span { color: var(--esmeralda); }
+.nv-sub { margin: 0 0 28px; color: var(--gris); font-size: 1.02rem; }
+
+.nv-error {
+  background: #FDECEC;
+  color: #B3261E;
+  padding: 11px 14px;
+  border-radius: 12px;
+  margin: 0 0 20px;
+  font-size: 0.92rem;
+}
+
+/* ---------- Campos ---------- */
+.nv-campo { display: block; margin-bottom: 20px; }
+.nv-etiqueta { display: block; margin-bottom: 8px; font-weight: 600; }
+.nv-caja {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border: 1.5px solid var(--borde);
+  border-radius: 14px;
+  transition: border-color .15s, box-shadow .15s;
+}
+.nv-caja:focus-within {
+  border-color: var(--esmeralda);
+  box-shadow: 0 0 0 4px rgba(15, 181, 142, 0.16);
+}
+.nv-caja .nv-icono {
+  flex: none;
+  width: 22px;
+  height: 22px;
+  margin-left: 16px;
+  color: var(--gris);
+}
+.nv-input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  padding: 16px 14px;
+  font: inherit;
+  color: var(--texto);
+}
+.nv-ojo {
+  display: flex;
+  border: 0;
+  background: none;
+  padding: 0 16px;
+  cursor: pointer;
+  color: var(--gris);
+}
+.nv-ojo svg { width: 22px; height: 22px; }
+.nv-ojo.activo { color: var(--esmeralda); }
+
+/* ---------- Botón principal ---------- */
+.nv-boton {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 6px;
+  padding: 17px;
+  border: 0;
+  border-radius: 14px;
+  background: linear-gradient(180deg, #12B08F, #067A66);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  font-size: 1.05rem;
+  cursor: pointer;
+  box-shadow: 0 10px 24px rgba(6, 122, 102, 0.3);
+  transition: transform .15s, box-shadow .15s;
+}
+.nv-boton:hover { transform: translateY(-1px); box-shadow: 0 14px 28px rgba(6, 122, 102, 0.38); }
+.nv-boton svg { width: 22px; height: 22px; }
+
+/* ---------- Pie del formulario ---------- */
+.nv-fila {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 20px;
+  font-size: 0.92rem;
+  color: var(--gris);
+}
+.nv-check { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.nv-check input { width: 18px; height: 18px; accent-color: var(--esmeralda); }
+.nv-link { color: var(--esmeralda-osc); font-weight: 600; text-decoration: none; }
+.nv-link:hover { text-decoration: underline; }
+.nv-aviso {
+  display: none;
+  margin-top: 14px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--suave);
+  color: var(--esmeralda-osc);
+  font-size: 0.88rem;
+}
+.nv-aviso.visible { display: block; }
+.nv-separador { height: 1px; border: 0; background: var(--borde); margin: 26px 0 20px; }
+.nv-pie {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  color: var(--gris);
+  font-size: 0.95rem;
+}
+.nv-pie svg { width: 24px; height: 24px; }
+
+/* ---------- Celular y pantallas angostas ---------- */
+@media (max-width: 900px) {
+  .nv-cuerpo { grid-template-columns: 1fr; }
+  .nv-hero { min-height: 260px; }
+  .nv-tarjeta { padding: 32px 24px; }
+  .nv-barra-derecha .nv-barra-texto { display: none; }
+  .nv-fila { flex-direction: column; align-items: flex-start; }
+}

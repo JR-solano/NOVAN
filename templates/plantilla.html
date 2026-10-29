@@ -5,40 +5,216 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NOVAN · {{ plantilla["nombre_salon"] }}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Lora:wght@500;600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
   <style>
+    .contenido-dashboard.ancho { max-width: 1600px; }
+
+    /* ---------- Barras de herramientas ---------- */
+    .herramientas {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px;
+      margin: 16px 0;
+      padding: 14px 18px;
+      border-radius: 16px;
+      background: #fff;
+      box-shadow: var(--sombra);
+    }
+    .herramientas .boton-primario {
+      width: auto;
+      margin: 0;
+      padding: 10px 20px;
+    }
+    .fila-form {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      margin: 0;
+    }
+    .mini-input {
+      padding: 9px 12px;
+      border: 1.5px solid var(--borde);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--texto);
+      font: inherit;
+    }
+    .mini-input:focus {
+      outline: none;
+      border-color: var(--verde);
+      box-shadow: 0 0 0 3px rgba(15, 181, 142, 0.16);
+    }
+    .mini-input.amplio { min-width: 260px; }
+    .mini-input.corto { width: 140px; }
+
+    .herr-titulo {
+      display: flex;
+      flex-direction: column;
+      margin-right: auto;
+    }
+    .herr-titulo strong { font-size: 1.15rem; color: var(--verde-osc); }
+    .herr-titulo span { color: var(--gris); font-size: 0.9rem; }
+
+    .indicador {
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .indicador.ok { background: #CFF5E5; color: #05684F; }
+    .indicador.aviso { background: #FFF3D6; color: #9A6200; }
+    .indicador.neutro { background: var(--suave); color: var(--verde-osc); }
+
+    /* ---------- Nuevo periodo ---------- */
+    .nuevo-periodo { margin: 0 0 8px; }
+    .nuevo-periodo summary {
+      display: inline-block;
+      padding: 9px 20px;
+      border: 1.5px solid var(--verde-osc);
+      border-radius: 999px;
+      color: var(--verde-osc);
+      font-weight: 600;
+      list-style: none;
+      cursor: pointer;
+    }
+    .nuevo-periodo summary::-webkit-details-marker { display: none; }
+    .nuevo-periodo[open] summary { background: var(--verde-osc); color: #fff; }
+    .nuevo-periodo .fila-form {
+      margin-top: 12px;
+      padding: 14px 18px;
+      border-radius: 16px;
+      background: #fff;
+      box-shadow: var(--sombra);
+    }
+    .nuevo-periodo .boton-primario { width: auto; margin: 0; padding: 10px 20px; }
+
+    /* ---------- Pestañas ---------- */
+    .pestanas {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 8px;
+      margin: 22px 0 0;
+    }
+    .pestana {
+      padding: 10px 22px;
+      border: 1.5px solid var(--verde-osc);
+      border-radius: 999px;
+      background: #fff;
+      color: var(--verde-osc);
+      font: inherit;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+    }
+    .pestana:hover { background: var(--suave); }
+    .pestana.activa {
+      background: linear-gradient(180deg, #12B08F, #067A66);
+      border-color: transparent;
+      color: #fff;
+      box-shadow: 0 6px 16px rgba(6, 122, 102, 0.3);
+    }
+    .panel-periodo { display: none; }
+    .panel-periodo.activo { display: block; }
+
+    /* ---------- Botones pequeños ---------- */
     .form-eliminar { display: inline; margin: 0; }
     .boton-eliminar {
       background: #fff;
       color: #b3261e;
       border: 1px solid #b3261e;
-      border-radius: 6px;
+      border-radius: 999px;
       padding: 2px 8px;
       font-size: 0.8rem;
       font-family: inherit;
       cursor: pointer;
-      margin-left: 8px;
     }
     .boton-eliminar:hover { background: #b3261e; color: #fff; }
+    .boton-editar {
+      background: #fff;
+      color: #067A66;
+      border: 1px solid #067A66;
+      border-radius: 999px;
+      padding: 2px 8px;
+      font-size: 0.8rem;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .boton-editar:hover { background: #067A66; color: #fff; }
     .input-porcentaje {
       width: 60px;
       padding: 2px 4px;
+      border: 1.5px solid var(--borde);
+      border-radius: 8px;
       font-size: 0.8rem;
       font-family: inherit;
-      margin-left: 8px;
     }
-    .boton-editar {
+    .herramientas .input-porcentaje { width: 80px; padding: 8px 10px; font-size: 0.95rem; }
+    .herramientas .boton-editar,
+    .herramientas .boton-eliminar { padding: 7px 14px; font-size: 0.88rem; }
+
+    /* ---------- La hoja (tabla) ---------- */
+    .cuerpo-dashboard table.planilla { width: max-content; max-width: 100%; }
+    .cuerpo-dashboard table.planilla th,
+    .cuerpo-dashboard table.planilla td { padding: 8px 10px; }
+    .cuerpo-dashboard table.planilla thead tr.sub th {
+      background: #0B3F37;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+    .cuerpo-dashboard table.planilla .col-est {
+      position: sticky;
+      left: 0;
+      z-index: 2;
+      min-width: 210px;
+      text-align: left;
+    }
+    .cuerpo-dashboard table.planilla thead .col-est { z-index: 3; }
+    .cuerpo-dashboard table.planilla td.col-est {
       background: #fff;
-      color: #1f6f6b;
-      border: 1px solid #1f6f6b;
-      border-radius: 6px;
-      padding: 2px 8px;
-      font-size: 0.8rem;
-      font-family: inherit;
-      cursor: pointer;
+      box-shadow: 2px 0 0 var(--borde);
     }
-    .boton-editar:hover { background: #1f6f6b; color: #fff; }
+    .cuerpo-dashboard table.planilla tbody tr:hover td.col-est { background: var(--fondo); }
+
+    .nombre-est { margin-right: 8px; }
+    .th-eval { min-width: 150px; }
+    .eval-nombre { margin-bottom: 4px; font-weight: 600; }
+    .eval-nombre span { font-weight: 400; opacity: 0.85; }
+
+    /* Casillas de asistencia: A = asistió, F = falta, E = excusa */
+    .asis {
+      width: 38px;
+      height: 38px;
+      padding: 0;
+      border: 1.5px solid var(--borde);
+      border-radius: 10px;
+      background: #fff;
+      color: var(--texto);
+      font: inherit;
+      font-weight: 700;
+      text-align: center;
+      text-transform: uppercase;
+    }
+    .asis:focus {
+      outline: none;
+      border-color: var(--verde);
+      box-shadow: 0 0 0 3px rgba(15, 181, 142, 0.2);
+    }
+    .asis.a { background: #DDF6EA; border-color: #8FD6B5; color: #067A66; }
+    .asis.f { background: #FDECEC; border-color: #E8A5A0; color: #B3261E; }
+    .asis.e { background: #FFF3D6; border-color: #EBC878; color: #9A6200; }
+
+    .cuerpo-dashboard table.planilla td.tot { font-weight: 700; }
+    .cuerpo-dashboard table.planilla td.tot-a { color: #067A66; }
+    .cuerpo-dashboard table.planilla td.tot-f { color: #B3261E; }
+    .cuerpo-dashboard table.planilla td.tot-e { color: #9A6200; }
+
+    .meta-ganada { color: #1f6f6b; font-weight: 600; }
+    .meta-necesita { color: #b45309; font-weight: 600; }
+    .meta-imposible { color: #b3261e; font-weight: 600; }
   </style>
 </head>
 <body class="cuerpo-dashboard">
@@ -50,202 +226,375 @@
     </div>
   </header>
 
-  <main class="contenido-dashboard">
+  <main class="contenido-dashboard ancho">
     <h1>{{ plantilla["nombre_salon"] }}</h1>
     <p>{{ plantilla["materia"] }}</p>
 
-    <h2>Agregar estudiante</h2>
-    <form class="form-plantilla" method="POST">
-      <label class="campo" for="nombre">
-        <span class="campo__etiqueta">Nombre del estudiante</span>
-        <input class="campo__input" type="text" id="nombre" name="nombre" placeholder="Ej. Juan Pérez" required>
-      </label>
-      <button class="boton-primario" type="submit">Agregar estudiante</button>
-    </form>
+    <!-- Estudiantes -->
+    <div class="herramientas">
+      <form class="fila-form" method="POST" action="{{ url_for('ver_plantilla', plantilla_id=plantilla['id']) }}">
+        <input class="mini-input amplio" type="text" name="nombre" placeholder="Nombre del estudiante" autocomplete="off" required>
+        <button class="boton-primario" type="submit">+ Agregar estudiante</button>
+      </form>
+      <span class="indicador neutro">
+        {{ estudiantes|length }} {{ 'estudiante' if estudiantes|length == 1 else 'estudiantes' }}
+      </span>
+    </div>
 
-    <h2>Crear periodo</h2>
-    <form class="form-plantilla" method="POST" action="{{ url_for('nuevo_periodo', plantilla_id=plantilla['id']) }}">
-      <label class="campo" for="nombre_periodo">
-        <span class="campo__etiqueta">Nombre</span>
-        <input class="campo__input" type="text" id="nombre_periodo" name="nombre" placeholder="Ej. Periodo 1" required>
-      </label>
-      <label class="campo" for="numero_clases">
-        <span class="campo__etiqueta">Número de clases</span>
-        <input class="campo__input" type="number" min="1" id="numero_clases" name="numero_clases" placeholder="Ej. 16" required>
-      </label>
-      <label class="campo" for="porcentaje_periodo">
-        <span class="campo__etiqueta">Porcentaje del periodo en la materia</span>
-        <input class="campo__input" type="number" step="0.1" min="0" max="100" id="porcentaje_periodo" name="porcentaje" placeholder="Ej. 20" required>
-      </label>
-      <button class="boton-primario" type="submit">Crear periodo</button>
-    </form>
+    <!-- Nuevo periodo -->
+    <details class="nuevo-periodo" {% if periodos|length == 0 %}open{% endif %}>
+      <summary>+ Nuevo periodo</summary>
+      <form class="fila-form" method="POST" action="{{ url_for('nuevo_periodo', plantilla_id=plantilla['id']) }}">
+        <input class="mini-input" type="text" name="nombre" placeholder="Nombre (ej. Primer periodo)" required>
+        <input class="mini-input corto" type="number" min="1" name="numero_clases" placeholder="N.º de clases" required>
+        <input class="mini-input corto" type="number" step="0.1" min="0" max="100" name="porcentaje" placeholder="Valor %" required>
+        <button class="boton-primario" type="submit">Crear periodo</button>
+      </form>
+    </details>
 
-    <h2>Periodos</h2>
     {% if periodos|length == 0 %}
-      <p class="mensaje-vacio">Todavía no hay periodos creados.</p>
+      <p class="mensaje-vacio" style="margin-top: 20px;">Crea el primer periodo (nombre, número de clases y su valor en la materia) para empezar a registrar asistencia y notas.</p>
     {% else %}
-      <ul class="lista-plantillas">
+
+      <!-- Pestañas de periodos -->
+      <div class="pestanas">
         {% for periodo in periodos %}
-          <li>
-            <a href="{{ url_for('ver_periodo', periodo_id=periodo['id']) }}">
-              {{ periodo["nombre"] }} — {{ periodo["porcentaje"] }}% de la materia ({{ periodo["numero_clases"] }} clases)
-            </a>
-            <a href="{{ url_for('reporte_asistencia', periodo_id=periodo['id']) }}" class="boton-editar" style="text-decoration:none; margin-left:8px;">Reporte de fallas</a>
-            <form class="form-eliminar" method="POST"
-                  action="{{ url_for('editar_periodo_porcentaje', periodo_id=periodo['id']) }}">
-              <input class="input-porcentaje" type="number" step="0.1" min="0" max="100"
-                     name="porcentaje" value="{{ periodo['porcentaje'] }}" required>
+          <button type="button" class="pestana" data-periodo="{{ periodo['id'] }}" onclick="activarPeriodo({{ periodo['id'] }})">{{ periodo["nombre"] }}</button>
+        {% endfor %}
+        {% set sp = suma_periodos %}
+        {% if (sp - 100)|abs < 0.01 %}
+          <span class="indicador ok">Los periodos suman 100%</span>
+        {% else %}
+          <span class="indicador aviso">Los periodos suman {{ sp|pct }}% (deben sumar 100%)</span>
+        {% endif %}
+      </div>
+
+      {% for periodo in periodos %}
+        {% set evals = evaluaciones|selectattr("periodo_id", "equalto", periodo["id"])|list %}
+        {% set n_clases = periodo["numero_clases"]|int %}
+        {% set se = suma_evaluaciones[periodo["id"]] %}
+
+        <section class="panel-periodo" id="periodo-{{ periodo['id'] }}">
+
+          <!-- Datos del periodo -->
+          <div class="herramientas">
+            <div class="herr-titulo">
+              <strong>{{ periodo["nombre"] }}</strong>
+              <span>{{ periodo["porcentaje"]|pct }}% de la materia · {{ n_clases }} clases</span>
+            </div>
+            <form class="fila-form" method="POST" action="{{ url_for('editar_periodo_porcentaje', periodo_id=periodo['id']) }}">
+              <input class="input-porcentaje" type="number" step="0.1" min="0" max="100" name="porcentaje" value="{{ periodo['porcentaje']|pct_input }}" required title="Valor del periodo en la materia (%)">
               <button type="submit" class="boton-editar">Guardar %</button>
             </form>
-            <form class="form-eliminar" method="POST"
-                  action="{{ url_for('eliminar_periodo', periodo_id=periodo['id']) }}"
+            <a href="{{ url_for('reporte_asistencia', periodo_id=periodo['id']) }}" class="boton-editar" style="text-decoration:none;">Reporte de fallas</a>
+            <form class="form-eliminar" method="POST" action="{{ url_for('eliminar_periodo', periodo_id=periodo['id']) }}"
                   onsubmit="return confirm('¿Seguro que quieres eliminar este periodo? Se borrarán también sus evaluaciones, las notas y la asistencia.');">
-              <button type="submit" class="boton-eliminar">Eliminar</button>
+              <button type="submit" class="boton-eliminar">Eliminar periodo</button>
             </form>
-          </li>
-        {% endfor %}
-      </ul>
-    {% endif %}
+          </div>
 
-    <h2>Crear evaluación</h2>
-    {% if periodos|length == 0 %}
-      <p class="mensaje-vacio">Primero crea un periodo para poder agregarle evaluaciones.</p>
-    {% else %}
-      <form class="form-plantilla" method="POST" action="{{ url_for('nueva_evaluacion', plantilla_id=plantilla['id']) }}">
-        <label class="campo" for="periodo_id">
-          <span class="campo__etiqueta">Periodo</span>
-          <select class="campo__input" id="periodo_id" name="periodo_id" required>
-            {% for periodo in periodos %}
-              <option value="{{ periodo['id'] }}">{{ periodo["nombre"] }}</option>
-            {% endfor %}
-          </select>
-        </label>
-        <label class="campo" for="nombre_evaluacion">
-          <span class="campo__etiqueta">Nombre</span>
-          <input class="campo__input" type="text" id="nombre_evaluacion" name="nombre" placeholder="Ej. Examen 1" required>
-        </label>
-        <label class="campo" for="porcentaje">
-          <span class="campo__etiqueta">Porcentaje dentro del periodo</span>
-          <input class="campo__input" type="number" step="0.1" min="0" max="100" id="porcentaje" name="porcentaje" placeholder="Ej. 30" required>
-        </label>
-        <button class="boton-primario" type="submit">Crear evaluación</button>
-      </form>
-    {% endif %}
+          <!-- Agregar evaluación -->
+          <div class="herramientas">
+            <form class="fila-form" method="POST" action="{{ url_for('nueva_evaluacion', plantilla_id=plantilla['id']) }}">
+              <input type="hidden" name="periodo_id" value="{{ periodo['id'] }}">
+              <input class="mini-input" type="text" name="nombre" placeholder="Evaluación (ej. Tarea 1)" autocomplete="off" required>
+              <input class="mini-input corto" type="number" step="0.1" min="0" max="100" name="porcentaje" placeholder="Valor %" required>
+              <button class="boton-primario" type="submit">+ Agregar evaluación</button>
+            </form>
+            {% if evals|length == 0 %}
+              <span class="indicador aviso">Agrega las evaluaciones de este periodo</span>
+            {% elif (se - 100)|abs < 0.01 %}
+              <span class="indicador ok">Las evaluaciones suman 100%</span>
+            {% else %}
+              <span class="indicador aviso">Las evaluaciones suman {{ se|pct }}% (deben sumar 100%)</span>
+            {% endif %}
+          </div>
 
-    <h2>Notas por periodo</h2>
-    {% if estudiantes|length == 0 %}
-      <p class="mensaje-vacio">Todavía no hay estudiantes en esta clase.</p>
-    {% elif periodos|length == 0 %}
-      <p class="mensaje-vacio">Todavía no hay periodos creados.</p>
-    {% else %}
-      {% for periodo in periodos %}
-        {% set evaluaciones_periodo = evaluaciones|selectattr("periodo_id", "equalto", periodo["id"])|list %}
-        <h3>{{ periodo["nombre"] }} ({{ periodo["porcentaje"] }}% de la materia)</h3>
-        {% if evaluaciones_periodo|length == 0 %}
-          <p class="mensaje-vacio">Todavía no hay evaluaciones en este periodo.</p>
-        {% else %}
-          <table class="tabla-notas">
-            <thead>
-              <tr>
-                <th>Estudiante</th>
-                {% for evaluacion in evaluaciones_periodo %}
-                  <th>
-                    {{ evaluacion["nombre"] }} ({{ evaluacion["porcentaje"] }}%)
-                    <form class="form-eliminar" method="POST"
-                          action="{{ url_for('editar_evaluacion_porcentaje', evaluacion_id=evaluacion['id']) }}">
-                      <input class="input-porcentaje" type="number" step="0.1" min="0" max="100"
-                             name="porcentaje" value="{{ evaluacion['porcentaje'] }}" required>
-                      <button type="submit" class="boton-editar">Guardar %</button>
-                    </form>
-                    <form class="form-eliminar" method="POST"
-                          action="{{ url_for('eliminar_evaluacion', evaluacion_id=evaluacion['id']) }}"
-                          onsubmit="return confirm('¿Seguro que quieres eliminar esta evaluación? Se borrarán también las notas de todos los estudiantes en ella.');">
-                      <button type="submit" class="boton-eliminar">Eliminar</button>
-                    </form>
-                  </th>
-                {% endfor %}
-                <th>Promedio periodo</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for estudiante in estudiantes %}
+          {% if estudiantes|length == 0 %}
+            <p class="mensaje-vacio">Agrega estudiantes arriba para empezar a registrar asistencia y notas.</p>
+          {% else %}
+            <table class="tabla-notas planilla">
+              <thead>
                 <tr>
-                  <td>{{ estudiante["nombre"] }}</td>
-                  {% for evaluacion in evaluaciones_periodo %}
-                    <td>
-                      <form method="POST" action="{{ url_for('guardar_nota', plantilla_id=plantilla['id']) }}">
-                        <input type="hidden" name="estudiante_id" value="{{ estudiante['id'] }}">
-                        <input type="hidden" name="evaluacion_id" value="{{ evaluacion['id'] }}">
-                        <input
-                          class="campo__input"
-                          type="number" step="0.1" min="1" max="5"
-                          name="valor"
-                          value="{{ notas.get(estudiante['id'], {}).get(evaluacion['id'], '') }}"
-                          onchange="this.form.submit()"
-                        >
+                  <th class="col-est" rowspan="2">Estudiante</th>
+                  <th colspan="{{ n_clases + 3 }}">Asistencia · A = asistió · F = falta · E = excusa</th>
+                  <th colspan="{{ [evals|length, 1]|max }}">Evaluaciones</th>
+                  <th rowspan="2">Nota final</th>
+                  <th rowspan="2">Para ganar</th>
+                  <th rowspan="2">Estado</th>
+                </tr>
+                <tr class="sub">
+                  {% for n in range(1, n_clases + 1) %}
+                    <th>{{ n }}</th>
+                  {% endfor %}
+                  <th>A</th>
+                  <th>F</th>
+                  <th>E</th>
+                  {% for evaluacion in evals %}
+                    <th class="th-eval">
+                      <div class="eval-nombre">{{ evaluacion["nombre"] }} <span>({{ evaluacion["porcentaje"]|pct }}%)</span></div>
+                      <form class="form-eliminar" method="POST" action="{{ url_for('editar_evaluacion_porcentaje', evaluacion_id=evaluacion['id']) }}">
+                        <input class="input-porcentaje" type="number" step="0.1" min="0" max="100" name="porcentaje" value="{{ evaluacion['porcentaje']|pct_input }}" required>
+                        <button type="submit" class="boton-editar">Guardar %</button>
+                      </form>
+                      <form class="form-eliminar" method="POST" action="{{ url_for('eliminar_evaluacion', evaluacion_id=evaluacion['id']) }}"
+                            onsubmit="return confirm('¿Seguro que quieres eliminar esta evaluación? Se borrarán también las notas de todos los estudiantes en ella.');">
+                        <button type="submit" class="boton-eliminar">Eliminar</button>
+                      </form>
+                    </th>
+                  {% else %}
+                    <th>—</th>
+                  {% endfor %}
+                </tr>
+              </thead>
+              <tbody>
+                {% for estudiante in estudiantes %}
+                  {% set d = promedios[estudiante['id']]['detalle'][periodo['id']] %}
+                  {% set marcas = asistencia.get(periodo['id'], {}).get(estudiante['id'], {}) %}
+                  {% set conteo = conteos.get(periodo['id'], {}).get(estudiante['id'], {}) %}
+                  <tr>
+                    <td class="col-est">
+                      <span class="nombre-est">{{ estudiante["nombre"] }}</span>
+                      <form class="form-eliminar" method="POST" action="{{ url_for('eliminar_estudiante', estudiante_id=estudiante['id']) }}"
+                            onsubmit="return confirm('¿Seguro que quieres eliminar a este estudiante? Se borrarán también sus notas y su asistencia.');">
+                        <button type="submit" class="boton-eliminar" title="Eliminar estudiante">✕</button>
                       </form>
                     </td>
-                  {% endfor %}
-                  <td>
-                    {% set promedio_periodo = promedios[estudiante['id']]['periodos'][periodo['id']] %}
-                    {{ promedio_periodo if promedio_periodo is not none else "-" }}
-                  </td>
-                </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        {% endif %}
+
+                    {% for n in range(1, n_clases + 1) %}
+                      {% set m = marcas.get(n, '') %}
+                      <td>
+                        <input class="asis {{ m|lower }}" type="text" maxlength="1" autocomplete="off" value="{{ m }}"
+                               data-est="{{ estudiante['id'] }}" data-periodo="{{ periodo['id'] }}" data-clase="{{ n }}"
+                               aria-label="Clase {{ n }} de {{ estudiante['nombre'] }}">
+                      </td>
+                    {% endfor %}
+                    <td class="tot tot-a">{{ conteo.get('A', 0) }}</td>
+                    <td class="tot tot-f">{{ conteo.get('F', 0) }}</td>
+                    <td class="tot tot-e">{{ conteo.get('E', 0) }}</td>
+
+                    {% for evaluacion in evals %}
+                      {% set nota_actual = notas.get(estudiante['id'], {}).get(evaluacion['id'], '') %}
+                      <td>
+                        <form method="POST" action="{{ url_for('guardar_nota', plantilla_id=plantilla['id']) }}">
+                          <input type="hidden" name="estudiante_id" value="{{ estudiante['id'] }}">
+                          <input type="hidden" name="evaluacion_id" value="{{ evaluacion['id'] }}">
+                          <input
+                            class="campo__input"
+                            type="text"
+                            inputmode="decimal"
+                            autocomplete="off"
+                            name="valor"
+                            title="Escribe 29 para 2,9"
+                            value="{% if nota_actual != '' and nota_actual is not none %}{{ '%.1f'|format(nota_actual|float)|replace('.', ',') }}{% endif %}"
+                            onchange="guardarNota(this)"
+                          >
+                        </form>
+                      </td>
+                    {% else %}
+                      <td>—</td>
+                    {% endfor %}
+
+                    <td>
+                      {% if d["nota"] is not none %}
+                        {{ '%.1f'|format(d["nota"])|replace('.', ',') }}
+                      {% else %}
+                        -
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if d["para_ganar"] is none %}
+                        -
+                      {% elif d["para_ganar"]["tipo"] == "imposible" %}
+                        <span class="meta-imposible">No alcanza</span>
+                      {% else %}
+                        <span class="meta-necesita">{{ '%.1f'|format(d["para_ganar"]["valor"]|float)|replace('.', ',') }}</span>
+                      {% endif %}
+                    </td>
+                    <td>
+                      {% if d["estado"] == "ganado" %}
+                        <span class="meta-ganada">Ganó la materia</span>
+                      {% elif d["estado"] == "perdido" %}
+                        <span class="meta-imposible">Perdió la materia</span>
+                      {% elif d["estado"] == "curso" %}
+                        En curso
+                      {% else %}
+                        Sin notas
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          {% endif %}
+        </section>
       {% endfor %}
-
-      <h3>Resumen de la materia</h3>
-      <table class="tabla-notas">
-        <thead>
-          <tr>
-            <th>Estudiante</th>
-            <th>Promedio final</th>
-            <th>Estado</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for estudiante in estudiantes %}
-            {% set resultado = promedios[estudiante['id']] %}
-            <tr>
-              <td>{{ estudiante["nombre"] }}</td>
-              <td>{{ resultado["final"] if resultado["final"] is not none else "-" }}</td>
-              <td>
-                {% if resultado["final"] is none %}
-                  Sin notas
-                {% elif resultado["completo"] and resultado["aprobado"] %}
-                  Ganó la materia
-                {% elif resultado["completo"] and not resultado["aprobado"] %}
-                  Perdió la materia
-                {% else %}
-                  En curso
-                {% endif %}
-              </td>
-            </tr>
-          {% endfor %}
-        </tbody>
-      </table>
-    {% endif %}
-
-    <h2>Estudiantes</h2>
-    {% if estudiantes|length == 0 %}
-      <p class="mensaje-vacio">Todavía no hay estudiantes en esta clase.</p>
-    {% else %}
-      <ul class="lista-plantillas">
-        {% for estudiante in estudiantes %}
-          <li>
-            {{ estudiante["nombre"] }}
-            <form class="form-eliminar" method="POST"
-                  action="{{ url_for('eliminar_estudiante', estudiante_id=estudiante['id']) }}"
-                  onsubmit="return confirm('¿Seguro que quieres eliminar a este estudiante? Se borrarán también sus notas y su asistencia.');">
-              <button type="submit" class="boton-eliminar">Eliminar</button>
-            </form>
-          </li>
-        {% endfor %}
-      </ul>
     {% endif %}
   </main>
+
+  <script>
+    var CLAVE_TAB = 'novan_tab_{{ plantilla["id"] }}';
+    var CLAVE_POS = 'novan_pos_{{ plantilla["id"] }}';
+    var URL_ASISTENCIA = "{{ url_for('guardar_asistencia', plantilla_id=plantilla['id']) }}";
+
+    /* ---------- Pestañas de periodos ---------- */
+    function activarPeriodo(id) {
+      document.querySelectorAll('.panel-periodo').forEach(function (p) {
+        p.classList.toggle('activo', p.id === 'periodo-' + id);
+      });
+      document.querySelectorAll('.pestana').forEach(function (b) {
+        b.classList.toggle('activa', b.getAttribute('data-periodo') === String(id));
+      });
+      try { sessionStorage.setItem(CLAVE_TAB, String(id)); } catch (e) {}
+    }
+
+    /* ---------- Recordar dónde estabas al recargar ---------- */
+    function guardarPosicion() {
+      try {
+        var tabla = document.querySelector('.panel-periodo.activo table');
+        sessionStorage.setItem(CLAVE_POS, JSON.stringify({
+          y: window.scrollY,
+          x: tabla ? tabla.scrollLeft : 0
+        }));
+      } catch (e) {}
+    }
+    document.addEventListener('submit', guardarPosicion, true);
+
+    (function () {
+      var paneles = document.querySelectorAll('.panel-periodo');
+      if (paneles.length) {
+        var ids = Array.prototype.map.call(paneles, function (p) { return p.id.replace('periodo-', ''); });
+        var guardado = null;
+        try { guardado = sessionStorage.getItem(CLAVE_TAB); } catch (e) {}
+        activarPeriodo(ids.indexOf(guardado) >= 0 ? guardado : ids[0]);
+      }
+      try {
+        var pos = JSON.parse(sessionStorage.getItem(CLAVE_POS) || 'null');
+        if (pos) {
+          sessionStorage.removeItem(CLAVE_POS);
+          window.scrollTo(0, pos.y);
+          var tabla = document.querySelector('.panel-periodo.activo table');
+          if (tabla) tabla.scrollLeft = pos.x;
+        }
+      } catch (e) {}
+    })();
+
+    /* ---------- Notas: escribe 29 y se guarda 2,9 ---------- */
+    function normalizarNota(texto) {
+      var t = texto.trim().replace(",", ".");
+      if (t === "") return "";
+      var numero;
+      if (/^\d{2}$/.test(t)) {
+        numero = parseInt(t, 10) / 10;
+      } else if (/^\d(\.\d)?$/.test(t)) {
+        numero = parseFloat(t);
+      } else {
+        return null;
+      }
+      if (numero < 1 || numero > 5) return null;
+      return numero;
+    }
+
+    function guardarNota(input) {
+      var numero = normalizarNota(input.value);
+      if (numero === null) {
+        alert("Nota no válida. Debe estar entre 1,0 y 5,0. Por ejemplo, escribe 29 para 2,9.");
+        input.value = input.defaultValue;
+        return;
+      }
+      input.value = (numero === "") ? "" : numero.toFixed(1).replace(".", ",");
+      guardarPosicion();
+      input.form.submit();
+    }
+
+    /* ---------- Asistencia: A = asistió, F = falta, E = excusa ---------- */
+    function pintarAsistencia(input) {
+      input.classList.toggle('a', input.value === 'A');
+      input.classList.toggle('f', input.value === 'F');
+      input.classList.toggle('e', input.value === 'E');
+    }
+
+    function actualizarTotales(fila) {
+      var a = 0, f = 0, e = 0;
+      fila.querySelectorAll('.asis').forEach(function (i) {
+        if (i.value === 'A') a++;
+        else if (i.value === 'F') f++;
+        else if (i.value === 'E') e++;
+      });
+      fila.querySelector('.tot-a').textContent = a;
+      fila.querySelector('.tot-f').textContent = f;
+      fila.querySelector('.tot-e').textContent = e;
+    }
+
+    function guardarAsistencia(input) {
+      var datos = new FormData();
+      datos.append('estudiante_id', input.getAttribute('data-est'));
+      datos.append('periodo_id', input.getAttribute('data-periodo'));
+      datos.append('numero_clase', input.getAttribute('data-clase'));
+      datos.append('marca', input.value);
+
+      fetch(URL_ASISTENCIA, { method: 'POST', body: datos })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (!j.ok) throw new Error('no guardado');
+          input.setAttribute('data-anterior', input.value);
+        })
+        .catch(function () {
+          input.value = input.getAttribute('data-anterior') || '';
+          pintarAsistencia(input);
+          actualizarTotales(input.closest('tr'));
+          alert('No se pudo guardar la asistencia. Recarga la página e inténtalo de nuevo.');
+        });
+    }
+
+    function celdaVecina(input, dx, dy) {
+      var fila = input.closest('tr');
+      var celdas = Array.prototype.slice.call(fila.querySelectorAll('.asis'));
+      var i = celdas.indexOf(input);
+      if (dy === 0) return celdas[i + dx] || null;
+      var otra = dy > 0 ? fila.nextElementSibling : fila.previousElementSibling;
+      return otra ? (otra.querySelectorAll('.asis')[i] || null) : null;
+    }
+
+    document.addEventListener('focusin', function (ev) {
+      var i = ev.target;
+      if (i.classList && i.classList.contains('asis')) {
+        i.setAttribute('data-anterior', i.value);
+        i.select();
+      }
+    });
+
+    document.addEventListener('input', function (ev) {
+      var i = ev.target;
+      if (!i.classList || !i.classList.contains('asis')) return;
+      var v = i.value.trim().toUpperCase();
+      if (v !== '' && v !== 'A' && v !== 'F' && v !== 'E') {
+        i.value = i.getAttribute('data-anterior') || '';
+        return;
+      }
+      i.value = v;
+      pintarAsistencia(i);
+      actualizarTotales(i.closest('tr'));
+      guardarAsistencia(i);
+      if (v !== '') {
+        var siguiente = celdaVecina(i, 1, 0);
+        if (siguiente) siguiente.focus();
+      }
+    });
+
+    document.addEventListener('keydown', function (ev) {
+      var i = ev.target;
+      if (!i.classList || !i.classList.contains('asis')) return;
+      var destino = null;
+      if (ev.key === 'ArrowRight') destino = celdaVecina(i, 1, 0);
+      else if (ev.key === 'ArrowLeft') destino = celdaVecina(i, -1, 0);
+      else if (ev.key === 'ArrowDown' || ev.key === 'Enter') destino = celdaVecina(i, 0, 1);
+      else if (ev.key === 'ArrowUp') destino = celdaVecina(i, 0, -1);
+      if (destino) {
+        ev.preventDefault();
+        destino.focus();
+      }
+    });
+  </script>
 </body>
 </html>
