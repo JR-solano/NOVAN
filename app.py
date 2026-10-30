@@ -8,7 +8,8 @@ from database import conectar
 from werkzeug.security import check_password_hash, generate_password_hash
 
 app = Flask(__name__)
-app.secret_key = "cambia_esto_por_algo_secreto"
+import os
+app.secret_key = os.environ.get("SECRET_KEY", "clave-solo-para-desarrollo-local")
 
 # Si el profesor marca "Recordar mi cuenta", la sesión dura 31 días
 app.permanent_session_lifetime = timedelta(days=31)
@@ -327,6 +328,59 @@ def nueva_plantilla():
         return redirect(url_for("dashboard"))
 
     return render_template("nueva_plantilla.html")
+
+
+# ============================================================
+# ELIMINAR UNA CLASE COMPLETA
+# Borra la clase y todo lo que tiene adentro: notas, asistencia,
+# evaluaciones, periodos y estudiantes (de hijos a padre, porque
+# SQLite no borra en cascada por defecto). Solo si la clase
+# pertenece al profesor que tiene la sesión iniciada.
+# ============================================================
+
+@app.route("/plantilla/<int:plantilla_id>/eliminar", methods=["POST"])
+@login_required
+def eliminar_plantilla(plantilla_id):
+    conexion = conectar()
+    cursor = conexion.cursor()
+
+    cursor.execute(
+        "SELECT id FROM plantilla WHERE id = ? AND profesor_id = ?",
+        (plantilla_id, session["profesor_id"])
+    )
+    if cursor.fetchone() is None:
+        conexion.close()
+        return redirect(url_for("dashboard"))
+
+    # 1) notas (de los estudiantes y de las evaluaciones de esta clase)
+    cursor.execute("""
+        DELETE FROM nota
+        WHERE estudiante_id IN (SELECT id FROM estudiante WHERE plantilla_id = ?)
+    """, (plantilla_id,))
+    cursor.execute("""
+        DELETE FROM nota
+        WHERE evaluacion_id IN (SELECT id FROM evaluacion WHERE plantilla_id = ?)
+    """, (plantilla_id,))
+    # 2) asistencia (de los periodos y de los estudiantes de esta clase)
+    cursor.execute("""
+        DELETE FROM asistencia
+        WHERE periodo_id IN (SELECT id FROM periodo WHERE plantilla_id = ?)
+    """, (plantilla_id,))
+    cursor.execute("""
+        DELETE FROM asistencia
+        WHERE estudiante_id IN (SELECT id FROM estudiante WHERE plantilla_id = ?)
+    """, (plantilla_id,))
+    # 3) evaluaciones, periodos y estudiantes
+    cursor.execute("DELETE FROM evaluacion WHERE plantilla_id = ?", (plantilla_id,))
+    cursor.execute("DELETE FROM periodo WHERE plantilla_id = ?", (plantilla_id,))
+    cursor.execute("DELETE FROM estudiante WHERE plantilla_id = ?", (plantilla_id,))
+    # 4) la clase
+    cursor.execute("DELETE FROM plantilla WHERE id = ?", (plantilla_id,))
+
+    conexion.commit()
+    conexion.close()
+
+    return redirect(url_for("dashboard"))
 
 
 # ============================================================
